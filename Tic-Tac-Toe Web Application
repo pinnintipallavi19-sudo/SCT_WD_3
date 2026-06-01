@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Tic-Tac-Toe</title>
+   
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#0284c7', 
+                        secondary: '#ea580c', 
+                        dark: '#1e293b',
+                        surface: 'rgba(255, 255, 255, 0.5)' 
+                    },
+                    animation: {
+                        'pop': 'pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+                        'fade-in': 'fadeIn 0.3s ease-out forwards',
+                    },
+                    keyframes: {
+                        pop: {
+                            '0%': { transform: 'scale(0.5)', opacity: '0' },
+                            '100%': { transform: 'scale(1)', opacity: '1' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(-10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #fff9e6 0%, #b0e0e6 100%); /* Buttermilk to Powder Blue */
+            background-attachment: fixed;
+            color: #1e293b;
+        }
+        
+        
+        .custom-radio input:checked + div {
+            background-color: #0284c7;
+            border-color: #0284c7;
+            color: white;
+        }
+        
+        .cell-hover:hover {
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .win-highlight {
+            background-color: rgba(2, 132, 199, 0.2) !important;
+            border-color: #0284c7 !important;
+        }
+
+        .x-color { color: #0284c7; }
+        .o-color { color: #ea580c; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-md w-full animate-fade-in flex flex-col gap-6">
+        
+     
+        <div class="bg-surface p-6 rounded-2xl shadow-xl border border-white/60 backdrop-blur-md">
+            <h1 class="text-3xl font-bold text-center mb-6 text-slate-800">
+                Tic Tac Toe
+            </h1>
+            
+            <div class="space-y-4">
+               
+                <div class="flex justify-center gap-4">
+                    <label class="custom-radio cursor-pointer flex-1">
+                        <input type="radio" name="mode" value="pvp" class="hidden" checked>
+                        <div class="text-center py-2 px-4 rounded-lg border border-slate-300 bg-white/50 transition-all font-medium text-sm">
+                            Player vs Player
+                        </div>
+                    </label>
+                    <label class="custom-radio cursor-pointer flex-1">
+                        <input type="radio" name="mode" value="pvc" class="hidden">
+                        <div class="text-center py-2 px-4 rounded-lg border border-slate-300 bg-white/50 transition-all font-medium text-sm">
+                            Player vs AI
+                        </div>
+                    </label>
+                </div>
+
+                
+                <div id="difficulty-settings" class="flex justify-center gap-4 hidden overflow-hidden transition-all duration-300">
+                    <label class="custom-radio cursor-pointer flex-1">
+                        <input type="radio" name="difficulty" value="easy" class="hidden">
+                        <div class="text-center py-1.5 px-4 rounded-lg border border-slate-300 bg-white/50 transition-all font-medium text-xs">
+                            Easy AI
+                        </div>
+                    </label>
+                    <label class="custom-radio cursor-pointer flex-1">
+                        <input type="radio" name="difficulty" value="hard" class="hidden" checked>
+                        <div class="text-center py-1.5 px-4 rounded-lg border border-slate-300 bg-white/50 transition-all font-medium text-xs">
+                            Unbeatable AI
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+       
+        <div class="flex justify-between items-center bg-surface p-4 rounded-2xl shadow-xl border border-white/60 backdrop-blur-md">
+            <div class="flex flex-col items-center">
+                <span class="text-sm text-slate-600 font-medium">Player X</span>
+                <span id="score-x" class="text-2xl font-bold x-color">0</span>
+            </div>
+            
+           
+            <div id="status-badge" class="px-4 py-1.5 rounded-full bg-white text-slate-800 text-sm font-semibold border border-slate-200 shadow-sm text-center min-w-[120px]">
+                X's Turn
+            </div>
+
+            <div class="flex flex-col items-center">
+                <span id="player-o-label" class="text-sm text-slate-600 font-medium">Player O</span>
+                <span id="score-o" class="text-2xl font-bold o-color">0</span>
+            </div>
+        </div>
+
+     
+        <div class="bg-surface p-4 sm:p-6 rounded-2xl shadow-xl border border-white/60 backdrop-blur-md">
+            <div class="grid grid-cols-3 gap-3 aspect-square" id="board">
+            
+            </div>
+        </div>
+
+        
+        <div class="flex justify-center">
+            <button id="reset-btn" class="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-800 px-6 py-3 rounded-xl font-medium transition-all shadow-lg border border-slate-200 active:scale-95">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                Restart Game
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+       
+        const SVGS = {
+            X: `<svg class="w-16 h-16 sm:w-20 sm:h-20 x-color animate-pop drop-shadow-md" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>`,
+            O: `<svg class="w-16 h-16 sm:w-20 sm:h-20 o-color animate-pop drop-shadow-md" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>`
+        };
+        const WIN_COMBOS = [
+            [0,1,2], [3,4,5], [6,7,8],
+            [0,3,6], [1,4,7], [2,5,8],
+            [0,4,8], [2,4,6]           
+        ];
+
+        
+        let boardState = Array(9).fill('');
+        let currentPlayer = 'X';
+        let gameActive = true;
+        let isAITurn = false;
+        let scores = { X: 0, O: 0 };
+        
+        
+        let gameMode = 'pvp'; 
+        let aiDifficulty = 'hard'; 
+
+      
+        const boardEl = document.getElementById('board');
+        const statusBadge = document.getElementById('status-badge');
+        const scoreXEl = document.getElementById('score-x');
+        const scoreOEl = document.getElementById('score-o');
+        const playerOLabel = document.getElementById('player-o-label');
+        const resetBtn = document.getElementById('reset-btn');
+        const modeRadios = document.getElementsByName('mode');
+        const difficultyRadios = document.getElementsByName('difficulty');
+        const difficultySettingsEl = document.getElementById('difficulty-settings');
+
+       
+        function initBoard() {
+            boardEl.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add(
+                    'cell', 'bg-white/60', 'rounded-xl', 'border', 'border-white/80', 'shadow-sm',
+                    'flex', 'items-center', 'justify-center', 'cursor-pointer', 
+                    'transition-all', 'duration-200', 'cell-hover'
+                );
+                cell.dataset.index = i;
+                cell.addEventListener('click', () => handleCellClick(i));
+                boardEl.appendChild(cell);
+            }
+        }
+
+     
+        function handleCellClick(index) {
+          
+            if (boardState[index] !== '' || !gameActive || isAITurn) return;
+
+            makeMove(index, currentPlayer);
+
+            if (checkWinDraw()) return;
+
+            switchPlayer();
+
+           
+            if (gameMode === 'pvc' && currentPlayer === 'O' && gameActive) {
+                isAITurn = true;
+                statusBadge.textContent = 'AI is thinking...';
+                statusBadge.className = 'px-4 py-1.5 rounded-full bg-slate-100 text-slate-600 text-sm font-semibold border border-slate-200 shadow-sm text-center min-w-[120px] animate-pulse';
+                
+                setTimeout(makeAIMove, 600); 
+            }
+        }
+
+        function makeMove(index, player) {
+            boardState[index] = player;
+            const cell = boardEl.children[index];
+            cell.innerHTML = SVGS[player];
+            cell.classList.remove('cursor-pointer', 'cell-hover');
+        }
+
+        function switchPlayer() {
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            updateStatus();
+        }
+
+        function updateStatus() {
+            if (!gameActive) return;
+            statusBadge.className = 'px-4 py-1.5 rounded-full bg-white text-slate-800 text-sm font-semibold border border-slate-200 shadow-sm text-center min-w-[120px]';
+            
+            if (currentPlayer === 'X') {
+                statusBadge.innerHTML = `<span class="x-color">X</span>'s Turn`;
+            } else {
+                let name = gameMode === 'pvc' ? 'AI' : 'O';
+                statusBadge.innerHTML = `<span class="o-color">${name}</span>'s Turn`;
+            }
+        }
+
+        function checkWinDraw() {
+            let won = false;
+            let winningCombo = [];
+
+            for (let i = 0; i < WIN_COMBOS.length; i++) {
+                const [a, b, c] = WIN_COMBOS[i];
+                if (boardState[a] && boardState[a] === boardState[b] && boardState[a] === boardState[c]) {
+                    won = true;
+                    winningCombo = [a, b, c];
+                    break;
+                }
+            }
+
+            if (won) {
+                endGame(currentPlayer, winningCombo);
+                return true;
+            }
+
+            if (!boardState.includes('')) {
+                endGame('draw', null);
+                return true;
+            }
+
+            return false;
+        }
+
+        function endGame(winner, winningCombo) {
+            gameActive = false;
+            isAITurn = false;
+
+            if (winner === 'draw') {
+                statusBadge.textContent = "It's a Draw!";
+                statusBadge.className = 'px-4 py-1.5 rounded-full bg-slate-200 text-slate-800 text-sm font-semibold border border-slate-300 shadow-sm text-center min-w-[120px]';
+            } else {
+                scores[winner]++;
+                updateScores();
+                
+                let winnerName = winner;
+                if (gameMode === 'pvc' && winner === 'O') winnerName = 'AI';
+                if (gameMode === 'pvc' && winner === 'X') winnerName = 'You';
+
+                statusBadge.innerHTML = winner === 'X' ? 
+                    `<span class="x-color font-bold">${winnerName} Wins!</span>` : 
+                    `<span class="o-color font-bold">${winnerName} Wins!</span>`;
+                statusBadge.className = `px-4 py-1.5 rounded-full text-sm font-semibold border text-center min-w-[120px] shadow-md shadow-${winner === 'X' ? 'primary' : 'secondary'}/20 border-${winner === 'X' ? 'primary' : 'secondary'}/50 bg-white`;
+
+                winningCombo.forEach(index => {
+                    boardEl.children[index].classList.add('win-highlight');
+                });
+            }
+        }
+
+        function updateScores() {
+            scoreXEl.textContent = scores.X;
+            scoreOEl.textContent = scores.O;
+        }
+
+        function resetGame() {
+            boardState = Array(9).fill('');
+            currentPlayer = 'X';
+            gameActive = true;
+            isAITurn = false;
+            initBoard();
+            updateStatus();
+        }
+
+        function fullReset() {
+            scores = { X: 0, O: 0 };
+            updateScores();
+            resetGame();
+        }
+
+        modeRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                gameMode = e.target.value;
+                if (gameMode === 'pvc') {
+                    difficultySettingsEl.classList.remove('hidden');
+                    playerOLabel.textContent = 'Computer (O)';
+                } else {
+                    difficultySettingsEl.classList.add('hidden');
+                    playerOLabel.textContent = 'Player O';
+                }
+                fullReset();
+            });
+        });
+
+        difficultyRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                aiDifficulty = e.target.value;
+                resetGame();
+            });
+        });
+
+        resetBtn.addEventListener('click', resetGame);
+
+      
+
+        function makeAIMove() {
+            if (!gameActive) return;
+            
+            let bestMoveIndex;
+            
+            if (aiDifficulty === 'easy') {
+                
+                const availableMoves = boardState.map((val, idx) => val === '' ? idx : null).filter(val => val !== null);
+                const randomIndex = Math.floor(Math.random() * availableMoves.length);
+                bestMoveIndex = availableMoves[randomIndex];
+            } else {
+              
+                bestMoveIndex = getBestMoveMinimax(boardState, 'O').index;
+            }
+
+            makeMove(bestMoveIndex, 'O');
+            isAITurn = false;
+
+            if (checkWinDraw()) return;
+            switchPlayer();
+        }
+
+       
+        function evaluateBoard(board) {
+            for (let i = 0; i < WIN_COMBOS.length; i++) {
+                const [a, b, c] = WIN_COMBOS[i];
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    return board[a]; 
+                }
+            }
+            return null;
+        }
+
+        
+        function getBestMoveMinimax(newBoard, player) {
+            let availableSpots = newBoard.map((val, idx) => val === '' ? idx : null).filter(val => val !== null);
+
+            
+            let winner = evaluateBoard(newBoard);
+            if (winner === 'X') {
+                return { score: -10 }; 
+            } else if (winner === 'O') {
+                return { score: 10 }; 
+            } else if (availableSpots.length === 0) {
+                return { score: 0 }; 
+            }
+
+            let moves = [];
+
+            for (let i = 0; i < availableSpots.length; i++) {
+                let move = {};
+                move.index = availableSpots[i];
+                
+                newBoard[availableSpots[i]] = player;
+
+                if (player === 'O') {
+                    let result = getBestMoveMinimax(newBoard, 'X');
+                    move.score = result.score;
+                } else {
+                    let result = getBestMoveMinimax(newBoard, 'O');
+                    move.score = result.score;
+                }
+
+                newBoard[availableSpots[i]] = '';
+                moves.push(move);
+            }
+
+            let bestMove;
+            if (player === 'O') {
+                let bestScore = -Infinity;
+                for (let i = 0; i < moves.length; i++) {
+                    if (moves[i].score > bestScore) {
+                        bestScore = moves[i].score;
+                        bestMove = i;
+                    }
+                }
+            } else {
+                let bestScore = Infinity;
+                for (let i = 0; i < moves.length; i++) {
+                    if (moves[i].score < bestScore) {
+                        bestScore = moves[i].score;
+                        bestMove = i;
+                    }
+                }
+            }
+
+            return moves[bestMove];
+        }
+
+    
+        initBoard();
+        updateStatus();
+
+    </script>
+</body>
+</html>
